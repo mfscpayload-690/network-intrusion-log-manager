@@ -78,4 +78,7 @@ This project is for academic use and is provided as-is without warranty.
 
 ## Contact
 For questions or support, please contact the project maintainer.
+<<<<<<< HEAD
 Aravind Lal
+=======
+>>>>>>> 1c23cb7 (Initial commit of Network Intrusion Log Manager project)
