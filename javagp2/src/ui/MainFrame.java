@@ -10,6 +10,8 @@ import java.util.List;
 public class MainFrame extends JFrame {
     private JPanel navPanel;
     private JPanel contentPanel;
+    private LogTablePanel logTablePanel; // Store as class field
+    private DashboardPanel dashboardPanel; // Store as class field
 
     public MainFrame() {
         setTitle("Network Intrusion Log Manager");
@@ -37,10 +39,10 @@ public class MainFrame extends JFrame {
         navPanel.add(logo);
         navPanel.add(Box.createVerticalStrut(40));
 
-            JButton addLogBtn = createNavButton("Add Log");
-            JButton viewLogsBtn = createNavButton("View Logs");
-            JButton filterBtn = createNavButton("Filter");
-            JButton dashboardBtn = createNavButton("Dashboard");
+        JButton addLogBtn = createNavButton("Add Log");
+        JButton viewLogsBtn = createNavButton("View Logs");
+        JButton filterBtn = createNavButton("Filter");
+        JButton dashboardBtn = createNavButton("Dashboard");
 
         navPanel.add(dashboardBtn);
         navPanel.add(Box.createVerticalStrut(10));
@@ -51,38 +53,38 @@ public class MainFrame extends JFrame {
         navPanel.add(filterBtn);
         navPanel.add(Box.createVerticalGlue());
 
-            // Content panel (center) with CardLayout
-            contentPanel = new JPanel(new CardLayout());
-            contentPanel.setBackground(new Color(20, 24, 28));
+        // Content panel (center) with CardLayout
+        contentPanel = new JPanel(new CardLayout());
+        contentPanel.setBackground(new Color(20, 24, 28));
 
-            // Panels for each section
-            LogTablePanel logTablePanel = new LogTablePanel();
-            LogFormPanel logFormPanel = new LogFormPanel(logTablePanel);
-            JPanel filterPanel = createFilterPanel(logTablePanel);
-            DashboardPanel dashboardPanel = new DashboardPanel();
+        // Panels for each section
+        logTablePanel = new LogTablePanel();
+        LogFormPanel logFormPanel = new LogFormPanel(logTablePanel);
+        JPanel filterPanel = createFilterPanel(logTablePanel);
+        dashboardPanel = new DashboardPanel(this); // Pass MainFrame reference
 
-            JLabel welcomeLabel = new JLabel("Welcome to Network Intrusion Log Manager!", JLabel.CENTER);
-            welcomeLabel.setFont(new Font("JetBrains Mono", Font.BOLD, 28));
-            welcomeLabel.setForeground(new Color(0, 255, 128));
-            welcomeLabel.setOpaque(true);
-            welcomeLabel.setBackground(new Color(20, 24, 28));
-            welcomeLabel.setBorder(BorderFactory.createLineBorder(new Color(0, 255, 128), 2));
-            welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            welcomeLabel.setVerticalAlignment(SwingConstants.CENTER);
+        JLabel welcomeLabel = new JLabel("Welcome to Network Intrusion Log Manager!", JLabel.CENTER);
+        welcomeLabel.setFont(new Font("JetBrains Mono", Font.BOLD, 28));
+        welcomeLabel.setForeground(new Color(0, 255, 128));
+        welcomeLabel.setOpaque(true);
+        welcomeLabel.setBackground(new Color(20, 24, 28));
+        welcomeLabel.setBorder(BorderFactory.createLineBorder(new Color(0, 255, 128), 2));
+        welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        welcomeLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-            contentPanel.add(welcomeLabel, "HOME");
+        contentPanel.add(welcomeLabel, "HOME");
 
-            // Animation: simple color pulse effect
-            new javax.swing.Timer(100, e -> {
-                float[] hsb = Color.RGBtoHSB(0, 255, 128, null);
-                float brightness = (float) ((Math.sin(System.currentTimeMillis() / 500.0) + 1) / 2 * 0.5 + 0.5);
-                Color animatedColor = Color.getHSBColor(hsb[0], hsb[1], brightness);
-                welcomeLabel.setForeground(animatedColor);
-            }).start();
-            contentPanel.add(logFormPanel, "FORM");
-            contentPanel.add(logTablePanel, "TABLE");
-            contentPanel.add(filterPanel, "FILTER");
-            contentPanel.add(dashboardPanel, "DASHBOARD");
+        // Animation: simple color pulse effect
+        new javax.swing.Timer(100, e -> {
+            float[] hsb = Color.RGBtoHSB(0, 255, 128, null);
+            float brightness = (float) ((Math.sin(System.currentTimeMillis() / 500.0) + 1) / 2 * 0.5 + 0.5);
+            Color animatedColor = Color.getHSBColor(hsb[0], hsb[1], brightness);
+            welcomeLabel.setForeground(animatedColor);
+        }).start();
+        contentPanel.add(logFormPanel, "FORM");
+        contentPanel.add(logTablePanel, "TABLE");
+        contentPanel.add(filterPanel, "FILTER");
+        contentPanel.add(dashboardPanel, "DASHBOARD");
 
         // Button actions to switch cards
         addLogBtn.addActionListener(e -> showCard("FORM"));
@@ -106,13 +108,19 @@ public class MainFrame extends JFrame {
             showCard("TABLE");
         });
         filterBtn.addActionListener(e -> showCard("FILTER"));
-            dashboardBtn.addActionListener(e -> {
-                System.out.println("Dashboard button clicked");
-                showCard("DASHBOARD");
-            });
+        dashboardBtn.addActionListener(e -> {
+            System.out.println("Dashboard button clicked");
+            showCard("DASHBOARD");
+        });
 
         add(navPanel, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
+    }
+
+    public void refreshLogTable() {
+        if (logTablePanel != null) {
+            logTablePanel.refreshTable();
+        }
     }
 
     private void showCard(String name) {
@@ -122,65 +130,65 @@ public class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
-        private JPanel createFilterPanel(LogTablePanel logTablePanel) {
-            JPanel panel = new JPanel();
-            panel.setBackground(new Color(20, 24, 28));
-            panel.setLayout(new GridBagLayout());
-            panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0,255,128)),
-                    "Filter Logs", 0, 0, new Font("JetBrains Mono", Font.BOLD, 16), new Color(0,255,128)));
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(10, 10, 10, 10);
-            gbc.anchor = GridBagConstraints.WEST;
+    private JPanel createFilterPanel(LogTablePanel logTablePanel) {
+        JPanel panel = new JPanel();
+        panel.setBackground(new Color(20, 24, 28));
+        panel.setLayout(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0,255,128)),
+                "Filter Logs", 0, 0, new Font("JetBrains Mono", Font.BOLD, 16), new Color(0,255,128)));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.WEST;
 
-            JLabel severityLabel = new JLabel("Severity:");
-            severityLabel.setForeground(new Color(0,255,128));
-            severityLabel.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
-            gbc.gridx = 0; gbc.gridy = 0;
-            panel.add(severityLabel, gbc);
+        JLabel severityLabel = new JLabel("Severity:");
+        severityLabel.setForeground(new Color(0,255,128));
+        severityLabel.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(severityLabel, gbc);
 
-            JComboBox<String> severityBox = new JComboBox<>(new String[] {"All", "Low", "Medium", "High", "Critical"});
-            severityBox.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
-            severityBox.setBackground(new Color(30,34,40));
-            severityBox.setForeground(Color.WHITE);
-            gbc.gridx = 1;
-            panel.add(severityBox, gbc);
+        JComboBox<String> severityBox = new JComboBox<>(new String[] {"All", "Low", "Medium", "High", "Critical"});
+        severityBox.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+        severityBox.setBackground(new Color(30,34,40));
+        severityBox.setForeground(Color.WHITE);
+        gbc.gridx = 1;
+        panel.add(severityBox, gbc);
 
-            JLabel threatLabel = new JLabel("Threat Type:");
-            threatLabel.setForeground(new Color(0,255,128));
-            threatLabel.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
-            gbc.gridx = 0; gbc.gridy = 1;
-            panel.add(threatLabel, gbc);
+        JLabel threatLabel = new JLabel("Threat Type:");
+        threatLabel.setForeground(new Color(0,255,128));
+        threatLabel.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(threatLabel, gbc);
 
-            JComboBox<String> threatBox = new JComboBox<>(new String[] {"All", "Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"});
-            threatBox.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
-            threatBox.setBackground(new Color(30,34,40));
-            threatBox.setForeground(Color.WHITE);
-            gbc.gridx = 1;
-            panel.add(threatBox, gbc);
+        JComboBox<String> threatBox = new JComboBox<>(new String[] {"All", "Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"});
+        threatBox.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+        threatBox.setBackground(new Color(30,34,40));
+        threatBox.setForeground(Color.WHITE);
+        gbc.gridx = 1;
+        panel.add(threatBox, gbc);
 
-            JButton applyBtn = new JButton("Apply Filter");
-            applyBtn.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
-            applyBtn.setBackground(new Color(0,255,128));
-            applyBtn.setForeground(Color.BLACK);
-            applyBtn.setFocusPainted(false);
-            gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
-            panel.add(applyBtn, gbc);
+        JButton applyBtn = new JButton("Apply Filter");
+        applyBtn.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
+        applyBtn.setBackground(new Color(0,255,128));
+        applyBtn.setForeground(Color.BLACK);
+        applyBtn.setFocusPainted(false);
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(applyBtn, gbc);
 
-            applyBtn.addActionListener(e -> {
-                String selectedSeverity = (String) severityBox.getSelectedItem();
-                String selectedThreat = (String) threatBox.getSelectedItem();
-                logTablePanel.refreshTableWithFilter(selectedSeverity, selectedThreat);
-                showCard("TABLE"); // Switch to table view to see results
-            });
+        applyBtn.addActionListener(e -> {
+            String selectedSeverity = (String) severityBox.getSelectedItem();
+            String selectedThreat = (String) threatBox.getSelectedItem();
+            logTablePanel.refreshTableWithFilter(selectedSeverity, selectedThreat);
+            showCard("TABLE"); // Switch to table view to see results
+        });
 
-            JLabel info = new JLabel("Applies filters and shows results in 'View Logs'.");
-            info.setFont(new Font("JetBrains Mono", Font.ITALIC, 12));
-            info.setForeground(new Color(0,255,128));
-            gbc.gridy = 3;
-            panel.add(info, gbc);
+        JLabel info = new JLabel("Applies filters and shows results in 'View Logs'.");
+        info.setFont(new Font("JetBrains Mono", Font.ITALIC, 12));
+        info.setForeground(new Color(0,255,128));
+        gbc.gridy = 3;
+        panel.add(info, gbc);
 
-            return panel;
-        }
+        return panel;
+    }
 
     private JButton createNavButton(String text) {
         JButton btn = new JButton(text);

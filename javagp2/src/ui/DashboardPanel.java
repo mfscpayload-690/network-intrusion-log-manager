@@ -12,6 +12,20 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class DashboardPanel extends JPanel {
     private JTextArea realTimeLogArea;
     private JLabel totalLogsLabel;
@@ -27,8 +41,10 @@ public class DashboardPanel extends JPanel {
 
     private LogDAO logDAO;
     private Timer refreshTimer;
+    private MainFrame mainFrame;
 
-    public DashboardPanel() {
+    public DashboardPanel(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
         logDAO = new LogDAO();
         setLayout(new BorderLayout());
         setBackground(new Color(20, 24, 28));
@@ -75,15 +91,25 @@ public class DashboardPanel extends JPanel {
 
         centerPanel.add(realTimePanel);
 
-        // Charts panel placeholder
-        chartsPanel = new JPanel();
-        chartsPanel.setBackground(new Color(20, 24, 28));
-        chartsPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 255, 128)),
-                "Charts & Statistics (Coming Soon)", TitledBorder.LEFT, TitledBorder.TOP,
-                new Font("JetBrains Mono", Font.BOLD, 16), new Color(0, 255, 128)));
-        centerPanel.add(chartsPanel);
+        // Charts panel with simple bar chart for threat types
+        // Removed charts panel as per user request
+//        chartsPanel = new JPanel() {
+//            @Override
+//            protected void paintComponent(Graphics g) {
+//                super.paintComponent(g);
+//                paintCharts(g);
+//            }
+//        };
+//        chartsPanel.setBackground(new Color(20, 24, 28));
+//        chartsPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0, 255, 128)),
+//                "Charts & Statistics", TitledBorder.LEFT, TitledBorder.TOP,
+//                new Font("JetBrains Mono", Font.BOLD, 16), new Color(0, 255, 128)));
+//        centerPanel.add(chartsPanel);
 
         add(centerPanel, BorderLayout.CENTER);
+
+        // Adjust preferred size to avoid overlap with bottom panel
+        centerPanel.setPreferredSize(new Dimension(centerPanel.getWidth(), 300));
 
         // Bottom panel with alerts, filters, user profile, network map, export/import
         JPanel bottomPanel = new JPanel(new GridLayout(1, 5, 10, 0));
@@ -126,6 +152,190 @@ public class DashboardPanel extends JPanel {
                 SwingUtilities.invokeLater(() -> refreshDashboard());
             }
         }, 0, 3000);
+
+        // Add action listeners for export and import buttons
+        exportButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                exportLogs();
+            }
+        });
+
+        importButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                importLogs();
+            }
+        });
+    }
+
+    private void paintCharts(Graphics g) {
+        List<IntrusionLog> logs = logDAO.getAllLogs();
+
+        // Calculate threat type counts
+        Map<String, Long> threatTypeCounts = logs.stream()
+                .collect(Collectors.groupingBy(IntrusionLog::getThreatType, Collectors.counting()));
+
+        // Calculate severity counts
+        Map<String, Long> severityCounts = logs.stream()
+                .collect(Collectors.groupingBy(IntrusionLog::getSeverity, Collectors.counting()));
+
+        int width = getWidth();
+        int height = getHeight();
+
+        int padding = 30;
+        int chartWidth = (width - 3 * padding) / 2;
+        int chartHeight = height - 3 * padding;
+
+        // Draw threat type bar chart
+        int x = padding;
+        int y = padding;
+
+        g.setColor(new Color(0, 255, 128));
+        g.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
+        g.drawString("Threat Types", x, y - 15);
+
+        int maxCount = threatTypeCounts.values().stream().mapToInt(Long::intValue).max().orElse(1);
+        int barWidth = chartWidth / Math.max(threatTypeCounts.size(), 1);
+
+        int barX = x;
+        for (Map.Entry<String, Long> entry : threatTypeCounts.entrySet()) {
+            int barHeight = (int) ((entry.getValue() * chartHeight) / maxCount);
+            g.fillRect(barX, y + chartHeight - barHeight, barWidth - 5, barHeight);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("JetBrains Mono", Font.PLAIN, 10));
+            g.drawString(entry.getKey(), barX, y + chartHeight + 15);
+            g.setColor(new Color(0, 255, 128));
+            barX += barWidth;
+        }
+
+        // Draw severity bar chart
+        x = padding * 2 + chartWidth;
+        g.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
+        g.drawString("Severity", x, y - 15);
+
+        maxCount = severityCounts.values().stream().mapToInt(Long::intValue).max().orElse(1);
+        barWidth = chartWidth / Math.max(severityCounts.size(), 1);
+
+        barX = x;
+        for (Map.Entry<String, Long> entry : severityCounts.entrySet()) {
+            int barHeight = (int) ((entry.getValue() * chartHeight) / maxCount);
+            g.fillRect(barX, y + chartHeight - barHeight, barWidth - 5, barHeight);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("JetBrains Mono", Font.PLAIN, 10));
+            g.drawString(entry.getKey(), barX, y + chartHeight + 15);
+            g.setColor(new Color(0, 255, 128));
+            barX += barWidth;
+        }
+    }
+
+    private void exportLogs() {
+        List<IntrusionLog> logs = logDAO.getAllLogs();
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Logs");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON and CSV files", "json", "csv"));
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            String fileName = fileToSave.getName().toLowerCase();
+            try {
+                if (fileName.endsWith(".json")) {
+                    exportLogsToJson(logs, fileToSave);
+                } else if (fileName.endsWith(".csv")) {
+                    exportLogsToCsv(logs, fileToSave);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Please specify a file with .json or .csv extension", "Invalid file extension", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error exporting logs: " + e.getMessage(), "Export Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void exportLogsToJson(List<IntrusionLog> logs, File file) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.writeValue(file, logs);
+    }
+
+    private void exportLogsToCsv(List<IntrusionLog> logs, File file) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write("id,ipAddress,threatType,severity,timestamp\n");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            for (IntrusionLog log : logs) {
+                writer.write(String.format("%d,%s,%s,%s,%s\n",
+                        log.getId(),
+                        log.getIpAddress(),
+                        log.getThreatType(),
+                        log.getSeverity(),
+                        log.getTimestamp().format(formatter)));
+            }
+        }
+    }
+
+    private void importLogs() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Import Logs");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON and CSV files", "json", "csv"));
+        int userSelection = fileChooser.showOpenDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToOpen = fileChooser.getSelectedFile();
+            String fileName = fileToOpen.getName().toLowerCase();
+            try {
+                List<IntrusionLog> importedLogs;
+                if (fileName.endsWith(".json")) {
+                    importedLogs = importLogsFromJson(fileToOpen);
+                } else if (fileName.endsWith(".csv")) {
+                    importedLogs = importLogsFromCsv(fileToOpen);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Please select a file with .json or .csv extension", "Invalid file extension", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (importedLogs != null && !importedLogs.isEmpty()) {
+                    boolean success = logDAO.insertPreFedLogs(importedLogs);
+                    if (success) {
+                        JOptionPane.showMessageDialog(this, "Logs imported successfully", "Import Success", JOptionPane.INFORMATION_MESSAGE);
+                        refreshDashboard();
+                        if (mainFrame != null) {
+                            mainFrame.refreshLogTable();
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to import logs", "Import Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error importing logs: " + e.getMessage(), "Import Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private List<IntrusionLog> importLogsFromJson(File file) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        IntrusionLog[] logsArray = mapper.readValue(file, IntrusionLog[].class);
+        return Arrays.asList(logsArray);
+    }
+
+    private List<IntrusionLog> importLogsFromCsv(File file) throws IOException {
+        List<IntrusionLog> logs = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line = reader.readLine(); // skip header
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length == 5) {
+                    IntrusionLog log = new IntrusionLog();
+                    log.setId(Integer.parseInt(parts[0]));
+                    log.setIpAddress(parts[1]);
+                    log.setThreatType(parts[2]);
+                    log.setSeverity(parts[3]);
+                    log.setTimestamp(java.time.LocalDateTime.parse(parts[4], formatter));
+                    logs.add(log);
+                }
+            }
+        }
+        return logs;
     }
 
     private JLabel createSummaryLabel(String title, String value) {
