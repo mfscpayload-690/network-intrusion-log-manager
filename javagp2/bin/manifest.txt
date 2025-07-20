@@ -1,0 +1,2 @@
+Main-Class: ui.MainFrame
+Class-Path: mysql-connector-j-9.3.0.jar
