@@ -1,36 +1,15 @@
-<<<<<<< HEAD
-# Compiled class file
-*.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
-=======
 # Compiled class files
 *.class
 
 # Package Files #
 *.jar
 *.war
+*.nar
 *.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
 
 # Eclipse files
 .project
@@ -58,9 +37,8 @@ nbdist/
 *.log
 
 # Database properties (if contains sensitive info)
-javagp2/resources/db.properties
+resources/db.properties
 
 # OS generated files
 .DS_Store
 Thumbs.db
->>>>>>> 1c23cb7 (Initial commit of Network Intrusion Log Manager project)

@@ -55,7 +55,7 @@ public class MainFrame extends JFrame {
         // Panels for each section
         LogTablePanel logTablePanel = new LogTablePanel();
         LogFormPanel logFormPanel = new LogFormPanel(logTablePanel);
-        JPanel filterPanel = createFilterPanel();
+        JPanel filterPanel = createFilterPanel(logTablePanel);
 
 JLabel welcomeLabel = new JLabel("Welcome to Network Intrusion Log Manager!", JLabel.CENTER);
 welcomeLabel.setFont(new Font("JetBrains Mono", Font.BOLD, 28));
@@ -83,23 +83,21 @@ new javax.swing.Timer(100, e -> {
         addLogBtn.addActionListener(e -> showCard("FORM"));
         viewLogsBtn.addActionListener(e -> {
             LogDAO dao = new LogDAO();
-            if (dao.getAllLogs().isEmpty()) {
-                // Insert 50 pre-fed logs
-                List<IntrusionLog> preFedLogs = new java.util.ArrayList<>();
-                java.time.LocalDateTime now = java.time.LocalDateTime.now();
-                String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
-                String[] severities = {"Low", "Medium", "High", "Critical"};
-                for (int i = 1; i <= 50; i++) {
-                    IntrusionLog log = new IntrusionLog();
-                    log.setIpAddress("192.168.1." + i);
-                    log.setThreatType(threatTypes[i % threatTypes.length]);
-                    log.setSeverity(severities[i % severities.length]);
-                    log.setTimestamp(now.minusDays(i));
-                    preFedLogs.add(log);
-                }
-                dao.clearAllLogs();
-                dao.insertPreFedLogs(preFedLogs);
+            // Always insert 100 pre-fed logs on view logs page open
+            List<IntrusionLog> preFedLogs = new java.util.ArrayList<>();
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
+            String[] severities = {"Low", "Medium", "High", "Critical"};
+            for (int i = 1; i <= 100; i++) {
+                IntrusionLog log = new IntrusionLog();
+                log.setIpAddress("192.168.1." + i);
+                log.setThreatType(threatTypes[i % threatTypes.length]);
+                log.setSeverity(severities[i % severities.length]);
+                log.setTimestamp(now.minusDays(i));
+                preFedLogs.add(log);
             }
+            dao.clearAllLogs();
+            dao.insertPreFedLogs(preFedLogs);
             showCard("TABLE");
         });
         filterBtn.addActionListener(e -> showCard("FILTER"));
@@ -115,7 +113,7 @@ new javax.swing.Timer(100, e -> {
         contentPanel.repaint();
     }
 
-        private JPanel createFilterPanel() {
+        private JPanel createFilterPanel(LogTablePanel logTablePanel) {
             JPanel panel = new JPanel();
             panel.setBackground(new Color(20, 24, 28));
             panel.setLayout(new GridBagLayout());
@@ -159,7 +157,14 @@ new javax.swing.Timer(100, e -> {
             gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
             panel.add(applyBtn, gbc);
 
-            JLabel info = new JLabel("(Filtering is UI-only for now)");
+            applyBtn.addActionListener(e -> {
+                String selectedSeverity = (String) severityBox.getSelectedItem();
+                String selectedThreat = (String) threatBox.getSelectedItem();
+                logTablePanel.refreshTableWithFilter(selectedSeverity, selectedThreat);
+                showCard("TABLE"); // Switch to table view to see results
+            });
+
+            JLabel info = new JLabel("Applies filters and shows results in 'View Logs'.");
             info.setFont(new Font("JetBrains Mono", Font.ITALIC, 12));
             info.setForeground(new Color(0,255,128));
             gbc.gridy = 3;

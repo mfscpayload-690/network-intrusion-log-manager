@@ -8,13 +8,7 @@ import java.io.InputStream;
 import java.io.IOException;
 
 public class DBConnection {
-    private static Connection connection = null;
-
     public static Connection getConnection() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            return connection;
-        }
-
         try (InputStream input = DBConnection.class.getClassLoader().getResourceAsStream("db.properties")) {
             Properties prop = new Properties();
 
@@ -31,12 +25,10 @@ public class DBConnection {
             // Load MySQL JDBC Driver
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            connection = DriverManager.getConnection(url, user, password);
+            return DriverManager.getConnection(url, user, password);
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             throw new SQLException("Failed to create database connection", e);
         }
-
-        return connection;
     }
 }

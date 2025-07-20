@@ -84,13 +84,31 @@ public class LogDAO {
         }
     }
 
-    public List<IntrusionLog> getAllLogs() {
+    public List<IntrusionLog> getFilteredLogs(String severityFilter, String threatTypeFilter) {
         List<IntrusionLog> logs = new ArrayList<>();
-        String sql = "SELECT id, ip_address, threat_type, severity, log_timestamp FROM intrusion_logs ORDER BY log_timestamp DESC";
+        StringBuilder sqlBuilder = new StringBuilder("SELECT id, ip_address, threat_type, severity, log_timestamp FROM intrusion_logs WHERE 1=1");
+        List<String> params = new ArrayList<>();
+
+        if (severityFilter != null && !severityFilter.equalsIgnoreCase("All")) {
+            sqlBuilder.append(" AND severity = ?");
+            params.add(severityFilter);
+        }
+
+        if (threatTypeFilter != null && !threatTypeFilter.equalsIgnoreCase("All")) {
+            sqlBuilder.append(" AND threat_type = ?");
+            params.add(threatTypeFilter);
+        }
+
+        sqlBuilder.append(" ORDER BY log_timestamp DESC");
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setString(i + 1, params.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 IntrusionLog log = new IntrusionLog();
@@ -108,5 +126,9 @@ public class LogDAO {
             e.printStackTrace();
         }
         return logs;
+    }
+
+    public List<IntrusionLog> getAllLogs() {
+        return getFilteredLogs("All", "All");
     }
 }

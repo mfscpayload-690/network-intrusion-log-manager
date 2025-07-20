@@ -76,9 +76,13 @@ public class LogTablePanel extends JPanel {
     }
 
     public void refreshTable() {
+        refreshTableWithFilter("All", "All");
+    }
+
+    public void refreshTableWithFilter(String severity, String threatType) {
         tableModel.setRowCount(0); // Clear existing data
         LogDAO dao = new LogDAO();
-        List<IntrusionLog> logs = dao.getAllLogs();
+        List<IntrusionLog> logs = dao.getFilteredLogs(severity, threatType);
         for (IntrusionLog log : logs) {
             Object[] row = {
                 String.format("%04d", log.getId()),

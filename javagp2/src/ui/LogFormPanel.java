@@ -20,6 +20,8 @@ public class LogFormPanel extends JPanel {
         this.logTablePanel = logTablePanel;
 
         setBackground(new Color(20, 24, 28));
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(0,255,128)),
+                    "Add Log", 0, 0, new Font("JetBrains Mono", Font.BOLD, 16), new Color(0,255,128)));
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);

@@ -76,9 +76,12 @@ Network Intrusion Log Manager is a Java Swing desktop application designed to he
 ## License
 This project is for academic use and is provided as-is without warranty.
 
-## Contact
-For questions or support, please contact the project maintainer.
-<<<<<<< HEAD
-Aravind Lal
-=======
->>>>>>> 1c23cb7 (Initial commit of Network Intrusion Log Manager project)
+
+
+## To run it locally on my fkn system!!  (dev: it works on my pc && manager: we can't give ur pc to client)
+
+> > first turn on your fkn local SQL server: `sudo systemctl start mysql`
+
+> > Now run this fkn command to run ur shit app: `java -cp javagp2/bin:javagp2/lib/mysql-connector-j-9.3.0.jar:javagp2/resources App`
+
+> > Just in case if u want to recompile this holy fvk: `javac -d javagp2/bin javagp2/src/**/*.java`
