@@ -37,10 +37,13 @@ public class MainFrame extends JFrame {
         navPanel.add(logo);
         navPanel.add(Box.createVerticalStrut(40));
 
-        JButton addLogBtn = createNavButton("Add Log");
-        JButton viewLogsBtn = createNavButton("View Logs");
-        JButton filterBtn = createNavButton("Filter");
+            JButton addLogBtn = createNavButton("Add Log");
+            JButton viewLogsBtn = createNavButton("View Logs");
+            JButton filterBtn = createNavButton("Filter");
+            JButton dashboardBtn = createNavButton("Dashboard");
 
+        navPanel.add(dashboardBtn);
+        navPanel.add(Box.createVerticalStrut(10));
         navPanel.add(addLogBtn);
         navPanel.add(Box.createVerticalStrut(10));
         navPanel.add(viewLogsBtn);
@@ -48,36 +51,38 @@ public class MainFrame extends JFrame {
         navPanel.add(filterBtn);
         navPanel.add(Box.createVerticalGlue());
 
-        // Content panel (center) with CardLayout
-        contentPanel = new JPanel(new CardLayout());
-        contentPanel.setBackground(new Color(20, 24, 28));
+            // Content panel (center) with CardLayout
+            contentPanel = new JPanel(new CardLayout());
+            contentPanel.setBackground(new Color(20, 24, 28));
 
-        // Panels for each section
-        LogTablePanel logTablePanel = new LogTablePanel();
-        LogFormPanel logFormPanel = new LogFormPanel(logTablePanel);
-        JPanel filterPanel = createFilterPanel(logTablePanel);
+            // Panels for each section
+            LogTablePanel logTablePanel = new LogTablePanel();
+            LogFormPanel logFormPanel = new LogFormPanel(logTablePanel);
+            JPanel filterPanel = createFilterPanel(logTablePanel);
+            DashboardPanel dashboardPanel = new DashboardPanel();
 
-JLabel welcomeLabel = new JLabel("Welcome to Network Intrusion Log Manager!", JLabel.CENTER);
-welcomeLabel.setFont(new Font("JetBrains Mono", Font.BOLD, 28));
-welcomeLabel.setForeground(new Color(0, 255, 128));
-welcomeLabel.setOpaque(true);
-welcomeLabel.setBackground(new Color(20, 24, 28));
-welcomeLabel.setBorder(BorderFactory.createLineBorder(new Color(0, 255, 128), 2));
-welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-welcomeLabel.setVerticalAlignment(SwingConstants.CENTER);
+            JLabel welcomeLabel = new JLabel("Welcome to Network Intrusion Log Manager!", JLabel.CENTER);
+            welcomeLabel.setFont(new Font("JetBrains Mono", Font.BOLD, 28));
+            welcomeLabel.setForeground(new Color(0, 255, 128));
+            welcomeLabel.setOpaque(true);
+            welcomeLabel.setBackground(new Color(20, 24, 28));
+            welcomeLabel.setBorder(BorderFactory.createLineBorder(new Color(0, 255, 128), 2));
+            welcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            welcomeLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-contentPanel.add(welcomeLabel, "HOME");
+            contentPanel.add(welcomeLabel, "HOME");
 
-// Animation: simple color pulse effect
-new javax.swing.Timer(100, e -> {
-    float[] hsb = Color.RGBtoHSB(0, 255, 128, null);
-    float brightness = (float) ((Math.sin(System.currentTimeMillis() / 500.0) + 1) / 2 * 0.5 + 0.5);
-    Color animatedColor = Color.getHSBColor(hsb[0], hsb[1], brightness);
-    welcomeLabel.setForeground(animatedColor);
-}).start();
-        contentPanel.add(logFormPanel, "FORM");
-        contentPanel.add(logTablePanel, "TABLE");
-        contentPanel.add(filterPanel, "FILTER");
+            // Animation: simple color pulse effect
+            new javax.swing.Timer(100, e -> {
+                float[] hsb = Color.RGBtoHSB(0, 255, 128, null);
+                float brightness = (float) ((Math.sin(System.currentTimeMillis() / 500.0) + 1) / 2 * 0.5 + 0.5);
+                Color animatedColor = Color.getHSBColor(hsb[0], hsb[1], brightness);
+                welcomeLabel.setForeground(animatedColor);
+            }).start();
+            contentPanel.add(logFormPanel, "FORM");
+            contentPanel.add(logTablePanel, "TABLE");
+            contentPanel.add(filterPanel, "FILTER");
+            contentPanel.add(dashboardPanel, "DASHBOARD");
 
         // Button actions to switch cards
         addLogBtn.addActionListener(e -> showCard("FORM"));
@@ -101,6 +106,10 @@ new javax.swing.Timer(100, e -> {
             showCard("TABLE");
         });
         filterBtn.addActionListener(e -> showCard("FILTER"));
+            dashboardBtn.addActionListener(e -> {
+                System.out.println("Dashboard button clicked");
+                showCard("DASHBOARD");
+            });
 
         add(navPanel, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);

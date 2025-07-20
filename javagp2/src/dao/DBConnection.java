@@ -9,11 +9,11 @@ import java.io.IOException;
 
 public class DBConnection {
     public static Connection getConnection() throws SQLException {
-        try (InputStream input = DBConnection.class.getClassLoader().getResourceAsStream("db.properties")) {
+        try (InputStream input = DBConnection.class.getClassLoader().getResourceAsStream("dao/db.properties")) {
             Properties prop = new Properties();
 
             if (input == null) {
-                throw new IOException("Unable to find db.properties");
+                throw new IOException("Unable to find dao/db.properties");
             }
 
             prop.load(input);
