@@ -75,10 +75,17 @@ public class LogFormPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         add(severityComboBox, gbc);
 
-        addButton = new JButton("Add Log");
+        addButton = new JButton("✅ Add Log");
         addButton.setBackground(new Color(0, 255, 128));
         addButton.setForeground(Color.BLACK);
         addButton.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
+        addButton.setFocusPainted(false);
+        addButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        addButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        
+        // Add hover effect
+        addHoverEffect(addButton, new Color(0, 255, 128), new Color(0, 220, 100));
+        
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.gridwidth = 2;
@@ -90,6 +97,94 @@ public class LogFormPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 addLog();
+            }
+        });
+    }
+    
+    private void addHoverEffect(JButton button, Color normalColor, Color hoverColor) {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            private Timer hoverTimer;
+            private Color currentColor = normalColor;
+            private boolean isHovering = false;
+            
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                isHovering = true;
+                if (hoverTimer != null && hoverTimer.isRunning()) {
+                    hoverTimer.stop();
+                }
+                
+                hoverTimer = new Timer(15, evt -> {
+                    int r = currentColor.getRed();
+                    int g = currentColor.getGreen();
+                    int b = currentColor.getBlue();
+                    
+                    int targetR = hoverColor.getRed();
+                    int targetG = hoverColor.getGreen();
+                    int targetB = hoverColor.getBlue();
+                    
+                    if (Math.abs(r - targetR) <= 3 && Math.abs(g - targetG) <= 3 && Math.abs(b - targetB) <= 3) {
+                        currentColor = hoverColor;
+                        button.setBackground(currentColor);
+                        hoverTimer.stop();
+                        return;
+                    }
+                    
+                    r += (targetR - r) > 0 ? Math.max(1, (targetR - r) / 6) : Math.min(-1, (targetR - r) / 6);
+                    g += (targetG - g) > 0 ? Math.max(1, (targetG - g) / 6) : Math.min(-1, (targetG - g) / 6);
+                    b += (targetB - b) > 0 ? Math.max(1, (targetB - b) / 6) : Math.min(-1, (targetB - b) / 6);
+                    
+                    currentColor = new Color(Math.max(0, Math.min(255, r)), 
+                                           Math.max(0, Math.min(255, g)), 
+                                           Math.max(0, Math.min(255, b)));
+                    button.setBackground(currentColor);
+                });
+                hoverTimer.start();
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                isHovering = false;
+                if (hoverTimer != null && hoverTimer.isRunning()) {
+                    hoverTimer.stop();
+                }
+                
+                hoverTimer = new Timer(15, evt -> {
+                    int r = currentColor.getRed();
+                    int g = currentColor.getGreen();
+                    int b = currentColor.getBlue();
+                    
+                    int targetR = normalColor.getRed();
+                    int targetG = normalColor.getGreen();
+                    int targetB = normalColor.getBlue();
+                    
+                    if (Math.abs(r - targetR) <= 3 && Math.abs(g - targetG) <= 3 && Math.abs(b - targetB) <= 3) {
+                        currentColor = normalColor;
+                        button.setBackground(currentColor);
+                        hoverTimer.stop();
+                        return;
+                    }
+                    
+                    r += (targetR - r) > 0 ? Math.max(1, (targetR - r) / 6) : Math.min(-1, (targetR - r) / 6);
+                    g += (targetG - g) > 0 ? Math.max(1, (targetG - g) / 6) : Math.min(-1, (targetG - g) / 6);
+                    b += (targetB - b) > 0 ? Math.max(1, (targetB - b) / 6) : Math.min(-1, (targetB - b) / 6);
+                    
+                    currentColor = new Color(Math.max(0, Math.min(255, r)), 
+                                           Math.max(0, Math.min(255, g)), 
+                                           Math.max(0, Math.min(255, b)));
+                    button.setBackground(currentColor);
+                });
+                hoverTimer.start();
+            }
+            
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                button.setBackground(normalColor.darker());
+            }
+            
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                button.setBackground(isHovering ? hoverColor : normalColor);
             }
         });
     }

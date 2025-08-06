@@ -74,13 +74,7 @@ public class MainFrame extends JFrame {
 
         contentPanel.add(welcomeLabel, "HOME");
 
-        // Animation: simple color pulse effect
-        new javax.swing.Timer(100, e -> {
-            float[] hsb = Color.RGBtoHSB(0, 255, 128, null);
-            float brightness = (float) ((Math.sin(System.currentTimeMillis() / 500.0) + 1) / 2 * 0.5 + 0.5);
-            Color animatedColor = Color.getHSBColor(hsb[0], hsb[1], brightness);
-            welcomeLabel.setForeground(animatedColor);
-        }).start();
+        // Removed continuous animation to improve performance
         contentPanel.add(logFormPanel, "FORM");
         contentPanel.add(logTablePanel, "TABLE");
         contentPanel.add(filterPanel, "FILTER");
@@ -89,23 +83,48 @@ public class MainFrame extends JFrame {
         // Button actions to switch cards
         addLogBtn.addActionListener(e -> showCard("FORM"));
         viewLogsBtn.addActionListener(e -> {
+            // Check if there are existing logs first to avoid unnecessary database operations
             LogDAO dao = new LogDAO();
-            // Always insert 100 pre-fed logs on view logs page open
-            List<IntrusionLog> preFedLogs = new java.util.ArrayList<>();
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
-            String[] severities = {"Low", "Medium", "High", "Critical"};
-            for (int i = 1; i <= 100; i++) {
-                IntrusionLog log = new IntrusionLog();
-                log.setIpAddress("192.168.1." + i);
-                log.setThreatType(threatTypes[i % threatTypes.length]);
-                log.setSeverity(severities[i % severities.length]);
-                log.setTimestamp(now.minusDays(i));
-                preFedLogs.add(log);
+            List<IntrusionLog> existingLogs = dao.getFilteredLogs("All", "All");
+            
+            // Only generate sample data if database is empty
+            if (existingLogs.isEmpty()) {
+                SwingUtilities.invokeLater(() -> {
+                    // Show loading message
+                    JOptionPane.showMessageDialog(this, "Loading sample data...", "Please Wait", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Generate sample data in background thread to prevent UI freezing
+                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            List<IntrusionLog> preFedLogs = new java.util.ArrayList<>();
+                            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                            String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
+                            String[] severities = {"Low", "Medium", "High", "Critical"};
+                            for (int i = 1; i <= 100; i++) {
+                                IntrusionLog log = new IntrusionLog();
+                                log.setIpAddress("192.168.1." + i);
+                                log.setThreatType(threatTypes[i % threatTypes.length]);
+                                log.setSeverity(severities[i % severities.length]);
+                                log.setTimestamp(now.minusDays(i));
+                                preFedLogs.add(log);
+                            }
+                            dao.insertPreFedLogs(preFedLogs);
+                            return null;
+                        }
+                        
+                        @Override
+                        protected void done() {
+                            logTablePanel.refreshTable();
+                            showCard("TABLE");
+                        }
+                    };
+                    worker.execute();
+                });
+            } else {
+                // Just show existing data
+                showCard("TABLE");
             }
-            dao.clearAllLogs();
-            dao.insertPreFedLogs(preFedLogs);
-            showCard("TABLE");
         });
         filterBtn.addActionListener(e -> showCard("FILTER"));
         dashboardBtn.addActionListener(e -> {
@@ -201,7 +220,36 @@ public class MainFrame extends JFrame {
         btn.setForeground(Color.BLACK);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Add smooth hover effects
+        addHoverEffect(btn, new Color(0, 255, 128), new Color(0, 200, 100));
+        
         return btn;
+    }
+    
+    private void addHoverEffect(JButton button, Color normalColor, Color hoverColor) {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                button.setBackground(hoverColor);
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                button.setBackground(normalColor);
+            }
+            
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                button.setBackground(normalColor.darker());
+            }
+            
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                button.setBackground(hoverColor);
+            }
+        });
     }
 
     // Utility to set default font for all UI

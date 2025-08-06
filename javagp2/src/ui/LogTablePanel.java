@@ -6,8 +6,7 @@ import model.IntrusionLog;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.util.List;
 
 public class LogTablePanel extends JPanel {
@@ -56,17 +55,20 @@ public class LogTablePanel extends JPanel {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(new Color(20, 24, 28));
 
-        deleteButton = new JButton("Delete Selected Log");
-        deleteButton.setFont(new Font("JetBrains Mono", Font.BOLD, 14));
-        deleteButton.setBackground(new Color(255, 0, 0));
-        deleteButton.setForeground(Color.WHITE);
-        deleteButton.setFocusPainted(false);
+        deleteButton = createStyledButton("🗑️ Delete Selected Log", new Color(220, 53, 69), new Color(255, 80, 80));
         deleteButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 deleteSelectedLog();
             }
         });
+        
+        // Add refresh button
+        JButton refreshButton = createStyledButton("🔄 Refresh", new Color(40, 167, 69), new Color(60, 200, 90));
+        refreshButton.addActionListener(e -> refreshTable());
+        
+        buttonPanel.add(refreshButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(deleteButton);
 
         add(buttonPanel, BorderLayout.SOUTH);
@@ -95,23 +97,82 @@ public class LogTablePanel extends JPanel {
         }
     }
 
+    private JButton createStyledButton(String text, Color normalColor, Color hoverColor) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("JetBrains Mono", Font.BOLD, 12));
+        button.setBackground(normalColor);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Simplified hover effect without intensive timers
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(hoverColor);
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(normalColor);
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                button.setBackground(normalColor.darker());
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                button.setBackground(hoverColor);
+            }
+        });
+        
+        return button;
+    }
+
     private void deleteSelectedLog() {
         int selectedRow = logTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a log to delete.", "No Selection", JOptionPane.WARNING_MESSAGE);
+            // Create custom styled message dialog
+            showStyledMessage("⚠️ No Selection", "Please select a log to delete.", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        int logId = Integer.parseInt((String) tableModel.getValueAt(selectedRow, 0));
-        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete the selected log?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            LogDAO dao = new LogDAO();
-            boolean success = dao.deleteLog(logId);
-            if (success) {
-                JOptionPane.showMessageDialog(this, "Log deleted successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                refreshTable();
+        
+        try {
+            // Fix: Handle both String and Integer types for log ID
+            Object logIdObj = tableModel.getValueAt(selectedRow, 0);
+            int logId;
+            if (logIdObj instanceof String) {
+                // Remove any formatting (like leading zeros) and parse
+                logId = Integer.parseInt(((String) logIdObj).replaceAll("^0+", ""));
             } else {
-                JOptionPane.showMessageDialog(this, "Failed to delete log.", "Error", JOptionPane.ERROR_MESSAGE);
+                logId = (Integer) logIdObj;
             }
+            
+            int confirm = JOptionPane.showConfirmDialog(this, 
+                "Are you sure you want to delete log ID: " + logId + "?", 
+                "🗑️ Confirm Delete", 
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+                
+            if (confirm == JOptionPane.YES_OPTION) {
+                LogDAO dao = new LogDAO();
+                boolean success = dao.deleteLog(logId);
+                if (success) {
+                    showStyledMessage("✅ Success", "Log deleted successfully.", JOptionPane.INFORMATION_MESSAGE);
+                    refreshTable();
+                } else {
+                    showStyledMessage("❌ Error", "Failed to delete log. Please try again.", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } catch (NumberFormatException e) {
+            showStyledMessage("❌ Error", "Invalid log ID format.", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    private void showStyledMessage(String title, String message, int messageType) {
+        JOptionPane.showMessageDialog(this, message, title, messageType);
     }
 }
