@@ -1,0 +1,53 @@
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: intrusion-logs-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: network_intrusion_logs
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - intrusion-network
+    restart: unless-stopped
+
+  # Java Application Service
+  app:
+    build: .
+    container_name: intrusion-logs-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DISPLAY=${DISPLAY}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=network_intrusion_logs
+      - DB_USER=appuser
+      - DB_PASSWORD=apppassword
+    volumes:
+      # For GUI support on Linux
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+    networks:
+      - intrusion-network
+    restart: unless-stopped
+    privileged: true
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  intrusion-network:
+    driver: bridge
