@@ -5,19 +5,8 @@ import model.IntrusionLog;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import java.awt.*;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -25,6 +14,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.TimerTask;
+
+// Jackson imports - only used when Jackson JAR is available
+// import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.fasterxml.jackson.databind.SerializationFeature;
+// import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class DashboardPanel extends JPanel {
     private JTextArea realTimeLogArea;
@@ -40,7 +35,7 @@ public class DashboardPanel extends JPanel {
     private JButton importButton;
 
     private LogDAO logDAO;
-    private Timer refreshTimer;
+    private java.util.Timer refreshTimer;
     private MainFrame mainFrame;
 
     public DashboardPanel(MainFrame mainFrame) {
@@ -145,7 +140,7 @@ public class DashboardPanel extends JPanel {
         add(bottomPanel, BorderLayout.SOUTH);
 
         // Start timer to refresh real-time logs and summary stats every 3 seconds
-        refreshTimer = new Timer();
+        refreshTimer = new java.util.Timer();
         refreshTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -253,10 +248,24 @@ public class DashboardPanel extends JPanel {
     }
 
     private void exportLogsToJson(List<IntrusionLog> logs, File file) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.writeValue(file, logs);
+        // Simple JSON export without Jackson - basic format
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write("[\n");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            for (int i = 0; i < logs.size(); i++) {
+                IntrusionLog log = logs.get(i);
+                writer.write("  {\n");
+                writer.write(String.format("    \"id\": %d,\n", log.getId()));
+                writer.write(String.format("    \"ipAddress\": \"%s\",\n", log.getIpAddress()));
+                writer.write(String.format("    \"threatType\": \"%s\",\n", log.getThreatType()));
+                writer.write(String.format("    \"severity\": \"%s\",\n", log.getSeverity()));
+                writer.write(String.format("    \"timestamp\": \"%s\"\n", log.getTimestamp().format(formatter)));
+                writer.write("  }");
+                if (i < logs.size() - 1) writer.write(",");
+                writer.write("\n");
+            }
+            writer.write("]\n");
+        }
     }
 
     private void exportLogsToCsv(List<IntrusionLog> logs, File file) throws IOException {
@@ -311,10 +320,63 @@ public class DashboardPanel extends JPanel {
     }
 
     private List<IntrusionLog> importLogsFromJson(File file) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        IntrusionLog[] logsArray = mapper.readValue(file, IntrusionLog[].class);
-        return Arrays.asList(logsArray);
+        // Simple JSON parsing - expects format created by exportLogsToJson
+        List<IntrusionLog> logs = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String content = reader.lines().reduce("", String::concat);
+            // Basic JSON parsing for our specific format
+            if (content.contains("[") && content.contains("]")) {
+                content = content.substring(content.indexOf('[') + 1, content.lastIndexOf(']'));
+                String[] objects = content.split("\\},\\s*\\{");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                
+                for (String obj : objects) {
+                    if (!obj.trim().isEmpty()) {
+                        IntrusionLog log = new IntrusionLog();
+                        
+                        // Extract values using basic string parsing
+                        String idStr = extractValue(obj, "id");
+                        String ipStr = extractValue(obj, "ipAddress");
+                        String threatStr = extractValue(obj, "threatType");
+                        String severityStr = extractValue(obj, "severity");
+                        String timestampStr = extractValue(obj, "timestamp");
+                        
+                        if (!idStr.isEmpty()) log.setId(Integer.parseInt(idStr));
+                        if (!ipStr.isEmpty()) log.setIpAddress(ipStr);
+                        if (!threatStr.isEmpty()) log.setThreatType(threatStr);
+                        if (!severityStr.isEmpty()) log.setSeverity(severityStr);
+                        if (!timestampStr.isEmpty()) {
+                            log.setTimestamp(java.time.LocalDateTime.parse(timestampStr, formatter));
+                        }
+                        
+                        logs.add(log);
+                    }
+                }
+            }
+        }
+        return logs;
+    }
+    
+    private String extractValue(String json, String key) {
+        String pattern = "\"" + key + "\"\\s*:\\s*";
+        int start = json.indexOf(pattern);
+        if (start == -1) return "";
+        start += pattern.length();
+        
+        char firstChar = json.charAt(start);
+        if (firstChar == '"') {
+            // String value
+            start++; // Skip opening quote
+            int end = json.indexOf('"', start);
+            return end > start ? json.substring(start, end) : "";
+        } else {
+            // Number value
+            int end = start;
+            while (end < json.length() && Character.isDigit(json.charAt(end))) {
+                end++;
+            }
+            return end > start ? json.substring(start, end) : "";
+        }
     }
 
     private List<IntrusionLog> importLogsFromCsv(File file) throws IOException {

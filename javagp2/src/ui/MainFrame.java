@@ -83,48 +83,10 @@ public class MainFrame extends JFrame {
         // Button actions to switch cards
         addLogBtn.addActionListener(e -> showCard("FORM"));
         viewLogsBtn.addActionListener(e -> {
-            // Check if there are existing logs first to avoid unnecessary database operations
-            LogDAO dao = new LogDAO();
-            List<IntrusionLog> existingLogs = dao.getFilteredLogs("All", "All");
-            
-            // Only generate sample data if database is empty
-            if (existingLogs.isEmpty()) {
-                SwingUtilities.invokeLater(() -> {
-                    // Show loading message
-                    JOptionPane.showMessageDialog(this, "Loading sample data...", "Please Wait", JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Generate sample data in background thread to prevent UI freezing
-                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                        @Override
-                        protected Void doInBackground() throws Exception {
-                            List<IntrusionLog> preFedLogs = new java.util.ArrayList<>();
-                            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-                            String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Other", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
-                            String[] severities = {"Low", "Medium", "High", "Critical"};
-                            for (int i = 1; i <= 100; i++) {
-                                IntrusionLog log = new IntrusionLog();
-                                log.setIpAddress("192.168.1." + i);
-                                log.setThreatType(threatTypes[i % threatTypes.length]);
-                                log.setSeverity(severities[i % severities.length]);
-                                log.setTimestamp(now.minusDays(i));
-                                preFedLogs.add(log);
-                            }
-                            dao.insertPreFedLogs(preFedLogs);
-                            return null;
-                        }
-                        
-                        @Override
-                        protected void done() {
-                            logTablePanel.refreshTable();
-                            showCard("TABLE");
-                        }
-                    };
-                    worker.execute();
-                });
-            } else {
-                // Just show existing data
-                showCard("TABLE");
-            }
+            // Simple and fast - just show the table without any database operations
+            showCard("TABLE");
+            // Optionally refresh the table to show current data
+            SwingUtilities.invokeLater(() -> logTablePanel.refreshTable());
         });
         filterBtn.addActionListener(e -> showCard("FILTER"));
         dashboardBtn.addActionListener(e -> {

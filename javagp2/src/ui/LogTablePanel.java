@@ -67,14 +67,20 @@ public class LogTablePanel extends JPanel {
         JButton refreshButton = createStyledButton("🔄 Refresh", new Color(40, 167, 69), new Color(60, 200, 90));
         refreshButton.addActionListener(e -> refreshTable());
         
+        // Add Generate Sample Data button
+        JButton generateButton = createStyledButton("🔥 Generate Sample Data", new Color(255, 193, 7), new Color(255, 235, 59));
+        generateButton.addActionListener(e -> generateSampleData());
+        
         buttonPanel.add(refreshButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(generateButton);
         buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(deleteButton);
 
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Load data from database
-        refreshTable();
+        // Load data from database in background - don't block UI
+        SwingUtilities.invokeLater(() -> refreshTableAsync());
     }
 
     public void refreshTable() {
@@ -174,5 +180,94 @@ public class LogTablePanel extends JPanel {
     
     private void showStyledMessage(String title, String message, int messageType) {
         JOptionPane.showMessageDialog(this, message, title, messageType);
+    }
+    
+    // Background refresh to prevent UI freezing
+    private void refreshTableAsync() {
+        SwingWorker<List<IntrusionLog>, Void> worker = new SwingWorker<List<IntrusionLog>, Void>() {
+            @Override
+            protected List<IntrusionLog> doInBackground() throws Exception {
+                try {
+                    LogDAO dao = new LogDAO();
+                    return dao.getFilteredLogs("All", "All");
+                } catch (Exception e) {
+                    System.err.println("Database error: " + e.getMessage());
+                    return new java.util.ArrayList<>(); // Return empty list on error
+                }
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    List<IntrusionLog> logs = get();
+                    tableModel.setRowCount(0); // Clear existing data
+                    
+                    if (logs.isEmpty()) {
+                        // Show message that no data is available
+                        Object[] row = {"--", "No data available", "Click 'Generate Sample Data'", "to get started", "--"};
+                        tableModel.addRow(row);
+                    } else {
+                        for (IntrusionLog log : logs) {
+                            Object[] row = {
+                                String.format("%04d", log.getId()),
+                                log.getIpAddress(),
+                                log.getThreatType(),
+                                log.getSeverity(),
+                                log.getTimestamp() != null ? log.getTimestamp().toString() : ""
+                            };
+                            tableModel.addRow(row);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error updating table: " + e.getMessage());
+                    // Show error message in table
+                    tableModel.setRowCount(0);
+                    Object[] row = {"ERROR", "Database connection failed", "Check connection", "and try again", "--"};
+                    tableModel.addRow(row);
+                }
+            }
+        };
+        worker.execute();
+    }
+    
+    // Generate sample data for testing
+    private void generateSampleData() {
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    LogDAO dao = new LogDAO();
+                    List<IntrusionLog> sampleLogs = new java.util.ArrayList<>();
+                    java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                    
+                    String[] threatTypes = {"Unauthorized Access", "DDoS", "Malware", "Phishing", "Bruteforce", "SQL Injection", "MITM", "DNS Spoofing"};
+                    String[] severities = {"Low", "Medium", "High", "Critical"};
+                    String[] ipPrefixes = {"192.168.1.", "10.0.0.", "172.16.0.", "203.0.113."};
+                    
+                    for (int i = 1; i <= 50; i++) {
+                        IntrusionLog log = new IntrusionLog();
+                        log.setIpAddress(ipPrefixes[i % ipPrefixes.length] + (i % 254 + 1));
+                        log.setThreatType(threatTypes[i % threatTypes.length]);
+                        log.setSeverity(severities[i % severities.length]);
+                        log.setTimestamp(now.minusHours(i).minusMinutes(i * 3));
+                        sampleLogs.add(log);
+                    }
+                    
+                    dao.insertPreFedLogs(sampleLogs);
+                } catch (Exception e) {
+                    System.err.println("Error generating sample data: " + e.getMessage());
+                }
+                return null;
+            }
+            
+            @Override
+            protected void done() {
+                SwingUtilities.invokeLater(() -> {
+                    showStyledMessage("✅ Success", "Sample data generated successfully!", JOptionPane.INFORMATION_MESSAGE);
+                    refreshTableAsync(); // Refresh the table to show new data
+                });
+            }
+        };
+        worker.execute();
     }
 }
